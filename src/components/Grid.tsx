@@ -21,6 +21,53 @@ export default function Grid({ docId, setSyncState }: GridProps){
   const [editingCell, setEditingCell] = useState<string | null>(null); // Track if user is actively typing
 
   useEffect(() => {
+    if (selectedCell) {
+      const input = document.getElementById(`cell-input-${selectedCell}`);
+      if (input) input.focus();
+    }
+  }, [selectedCell]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, colIndex: number, rowIndex: number) => {
+    let nextCol = colIndex;
+    let nextRow = rowIndex;
+
+    switch (e.key) {
+      case "ArrowUp":
+        nextRow = Math.max(0, rowIndex - 1);
+        break;
+      case "ArrowDown":
+      case "Enter":
+        e.preventDefault();
+        nextRow = Math.min(ROWS - 1, rowIndex + 1);
+        break;
+      case "ArrowLeft":
+        if ((e.target as HTMLInputElement).selectionStart === 0) {
+          nextCol = Math.max(0, colIndex - 1);
+        } else return;
+        break;
+      case "ArrowRight":
+        if ((e.target as HTMLInputElement).selectionStart === (e.target as HTMLInputElement).value.length) {
+          nextCol = Math.min(COLS - 1, colIndex + 1);
+        } else return;
+        break;
+      case "Tab":
+        e.preventDefault();
+        if (e.shiftKey) {
+          nextCol = Math.max(0, colIndex - 1); // Shift+Tab moves left
+        } else {
+          nextCol = Math.min(COLS - 1, colIndex + 1); // Tab moves right
+        }
+        break;
+      default:
+        return;
+    }
+
+    const nextCellId = `${getColumnName(nextCol)}${nextRow + 1}`;
+    setSelectedCell(nextCellId);
+    setEditingCell(null); // Switch out of edit mode when navigating away
+  };
+
+  useEffect(() => {
     updateCursor(selectedCell);
   }, [selectedCell, updateCursor]);
 
@@ -71,6 +118,7 @@ export default function Grid({ docId, setSyncState }: GridProps){
                     )}
                     
                     <input
+                      id={`cell-input-${cellId}`}
                       type="text"
                       className={`w-full h-full min-h-7 px-1 outline-none text-sm ${
                         isSelected ? "ring-2 ring-blue-500 z-20 relative bg-white" : "bg-transparent relative z-0"
@@ -78,7 +126,8 @@ export default function Grid({ docId, setSyncState }: GridProps){
                       value={displayValue}
                       onChange={(e) => updateCell(cellId, e.target.value)}
                       onFocus={() => setEditingCell(cellId)}
-                      onBlur={() => setEditingCell(null)} // Switch back to computed value when clicking away
+                      onBlur={() => setEditingCell(null)}
+                      onKeyDown={(e) => handleKeyDown(e, colIndex, rowIndex)}
                     />
                   </td>
                 );
