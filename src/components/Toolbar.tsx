@@ -1,23 +1,30 @@
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import { ArrowLeft, FileSpreadsheet } from "lucide-react";
-import { SpreadsheetDoc } from "@/types";
+import { useState } from "react";
+import { ArrowLeft, FileSpreadsheet, Cloud, CloudOff, RefreshCw } from "lucide-react";
+import { SpreadsheetDoc } from "@/types/types";
 import { useAuth } from "@/hooks/useAuth";
 import { usePresence } from "@/hooks/usePresence";
+import { SyncState } from "@/hooks/useGridSync";
 
 interface ToolbarProps {
   document: SpreadsheetDoc;
   updateTitle: (title: string) => void;
   docId: string;
+  syncState: SyncState;
 }
 
-export default function Toolbar({ document, updateTitle, docId }: ToolbarProps) {
+export default function Toolbar({ document, updateTitle, docId, syncState }: ToolbarProps) {
   const router = useRouter();
   const { user } = useAuth();
   const { activeUsers } = usePresence(docId, user);
   const [title, setTitle] = useState(document.title);
+  const [prevDocTitle, setPrevDocTitle] = useState(document.title);
 
-  useEffect(() => { setTitle(document.title); }, [document.title]);
+  if (document.title !== prevDocTitle) {
+    setPrevDocTitle(document.title);
+    setTitle(document.title);
+  
+  }
 
   const handleTitleBlur = () => {
     if (title.trim() !== document.title && title.trim() !== "") {
@@ -59,8 +66,19 @@ export default function Toolbar({ document, updateTitle, docId }: ToolbarProps) 
             </div>
           ))}
         </div>
-        
-        <span className="text-sm text-gray-500 border-l pl-4">Saved to cloud</span>
+        {/* WRITE-STATE INDICATOR */}
+        <div className="flex items-center gap-2 border-l pl-4 text-sm text-gray-500 min-w-30">
+          {syncState === 'syncing' && (
+            <><RefreshCw size={16} className="animate-spin text-blue-500" /> <span>Saving...</span></>
+          )}
+          {syncState === 'synced' && (
+            <><Cloud size={16} className="text-green-600" /> <span>Saved to cloud</span></>
+          )}
+          {syncState === 'error' && (
+            <><CloudOff size={16} className="text-red-500" /> <span className="text-red-500">Offline</span></>
+          )}
+        </div>
+
       </div>
     </div>
   );

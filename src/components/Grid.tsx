@@ -1,16 +1,21 @@
 import { useState, useEffect } from "react";
-import { useGridSync } from "@/hooks/useGridSync";
 import { useAuth } from "@/hooks/useAuth";
+import { useGridSync, SyncState } from "@/hooks/useGridSync";
 import { usePresence } from "@/hooks/usePresence";
-import { evaluateFormula } from "@/lib/formula"; // <-- ADD THIS
+import { evaluateFormula } from "@/lib/formula";
 
 const COLS = 26;
 const ROWS = 100;
 const getColumnName = (index: number) => String.fromCharCode(65 + index);
 
-export default function Grid({ docId }: { docId: string }) {
+interface GridProps {
+  docId: string;
+  setSyncState: (state: SyncState) => void;
+}
+
+export default function Grid({ docId, setSyncState }: GridProps){
   const { user } = useAuth();
-  const { cells, updateCell } = useGridSync(docId, user?.uid);
+  const { cells, updateCell } = useGridSync(docId, user?.uid, setSyncState);
   const { activeUsers, updateCursor } = usePresence(docId, user);
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
   const [editingCell, setEditingCell] = useState<string | null>(null); // Track if user is actively typing
@@ -67,7 +72,7 @@ export default function Grid({ docId }: { docId: string }) {
                     
                     <input
                       type="text"
-                      className={`w-full h-full min-h-[28px] px-1 outline-none text-sm ${
+                      className={`w-full h-full min-h-7 px-1 outline-none text-sm ${
                         isSelected ? "ring-2 ring-blue-500 z-20 relative bg-white" : "bg-transparent relative z-0"
                       }`}
                       value={displayValue}

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useDocument } from "@/hooks/useDocument";
 import Toolbar from "@/components/Toolbar";
 import Grid from "@/components/Grid";
+import { SyncState } from "@/hooks/useGridSync";
 
 export default function SpreadsheetEditor() {
   const params = useParams();
@@ -14,6 +15,8 @@ export default function SpreadsheetEditor() {
 
   const { user, loading: authLoading } = useAuth();
   const { document, loading: docLoading, updateTitle } = useDocument(docId);
+
+  const [syncState, setSyncState] = useState<SyncState>('synced');
 
   // Protect the route: if not logged in, boot them to home
   useEffect(() => {
@@ -37,17 +40,14 @@ export default function SpreadsheetEditor() {
     );
   }
 
-  return (
+return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
-      <Toolbar document={document} updateTitle={updateTitle} docId={docId} />
+      {/* Pass syncState to Toolbar */}
+      <Toolbar document={document} updateTitle={updateTitle} docId={docId} syncState={syncState} />
       
-      <main className="flex-1 overflow-auto bg-white m-2 border rounded shadow-sm">
-        <main className="flex-1 overflow-hidden bg-white m-2 border rounded shadow-sm">
-          <Grid docId={docId} />
-        </main>
-        <div className="flex items-center justify-center h-full text-gray-400">
-          Grid Layout Placeholder
-        </div>
+      <main className="flex-1 overflow-hidden bg-white m-2 border rounded shadow-sm">
+        {/* Pass setSyncState to Grid */}
+        <Grid docId={docId} setSyncState={setSyncState} />
       </main>
     </div>
   );

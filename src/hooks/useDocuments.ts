@@ -1,19 +1,16 @@
 import { useState, useEffect } from "react";
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { SpreadsheetDoc } from "@/types";
+import { SpreadsheetDoc } from "@/types/types";
 
 export const useDocuments = (uid: string | undefined) => {
   const [documents, setDocuments] = useState<SpreadsheetDoc[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!uid) {
-      setDocuments([]);
-      setLoading(false);
-      return;
-    }
+    if (!uid) return;
 
+    setLoading(true);
     const q = query(
       collection(db, "spreadsheets"),
       where("ownerId", "==", uid),
