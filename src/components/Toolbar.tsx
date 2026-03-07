@@ -8,7 +8,7 @@ import { usePresence } from "@/hooks/usePresence";
 interface ToolbarProps {
   document: SpreadsheetDoc;
   updateTitle: (title: string) => void;
-  docId: string; // Add this prop
+  docId: string;
 }
 
 export default function Toolbar({ document, updateTitle, docId }: ToolbarProps) {
