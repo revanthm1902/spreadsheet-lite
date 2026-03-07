@@ -39,7 +39,7 @@ export default function SpreadsheetEditor() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
-      <Toolbar document={document} updateTitle={updateTitle} />
+      <Toolbar document={document} updateTitle={updateTitle} docId={docId} />
       
       <main className="flex-1 overflow-auto bg-white m-2 border rounded shadow-sm">
         <main className="flex-1 overflow-hidden bg-white m-2 border rounded shadow-sm">
