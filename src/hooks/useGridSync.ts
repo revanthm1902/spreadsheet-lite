@@ -3,42 +3,50 @@ import { ref, onValue, update } from "firebase/database";
 import { rtdb } from "@/lib/firebase";
 
 export const useGridSync = (docId: string, uid: string | undefined) => {
-  // We store cells as a dictionary/object keyed by cell ID (e.g., { "A1": { value: "Hello" } })
   const [cells, setCells] = useState<Record<string, { value: string }>>({});
 
-  // Listen for changes from Firebase
   useEffect(() => {
     if (!docId) return;
     
     const cellsRef = ref(rtdb, `documents/${docId}/cells`);
+    
+    // Add error handling to the listener
     const unsubscribe = onValue(cellsRef, (snapshot) => {
       if (snapshot.exists()) {
         setCells(snapshot.val());
       } else {
         setCells({});
       }
+    }, (error) => {
+      console.error("Firebase Read Error:", error);
     });
 
-    return () => unsubscribe(); // Cleanup listener on unmount
+    return () => unsubscribe();
   }, [docId]);
 
-  // Push changes to Firebase
   const updateCell = useCallback((cellId: string, value: string) => {
-    if (!docId || !uid) return;
+    if (!docId || !uid) {
+      console.warn("Update blocked: Missing docId or User UID");
+      return;
+    }
 
-    // Optimistic local update for a snappy UI before the server responds
+    // Optimistic local update
     setCells((prev) => ({
       ...prev,
       [cellId]: { ...prev[cellId], value }
     }));
 
-    // Update RTDB
     const cellRef = ref(rtdb, `documents/${docId}/cells`);
+    
+    // Add catch block to see why writes are failing
     update(cellRef, {
       [`${cellId}/value`]: value,
       [`${cellId}/lastModifiedBy`]: uid,
       [`${cellId}/timestamp`]: Date.now(),
+    }).catch((error) => {
+      console.error("Firebase Write Error:", error);
     });
+    
   }, [docId, uid]);
 
   return { cells, updateCell };
