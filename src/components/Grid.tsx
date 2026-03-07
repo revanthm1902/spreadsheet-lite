@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useGridSync } from "@/hooks/useGridSync";
 import { useAuth } from "@/hooks/useAuth";
-import { usePresence } from "@/hooks/usePresence"; // <-- ADD THIS
+import { usePresence } from "@/hooks/usePresence";
+import { evaluateFormula } from "@/lib/formula"; // <-- ADD THIS
 
 const COLS = 26;
 const ROWS = 100;
@@ -10,22 +11,18 @@ const getColumnName = (index: number) => String.fromCharCode(65 + index);
 export default function Grid({ docId }: { docId: string }) {
   const { user } = useAuth();
   const { cells, updateCell } = useGridSync(docId, user?.uid);
-  const { activeUsers, updateCursor } = usePresence(docId, user); // <-- ADD THIS
+  const { activeUsers, updateCursor } = usePresence(docId, user);
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
+  const [editingCell, setEditingCell] = useState<string | null>(null); // Track if user is actively typing
 
-  // Broadcast cursor changes
   useEffect(() => {
     updateCursor(selectedCell);
   }, [selectedCell, updateCursor]);
 
-  const handleCellChange = (cellId: string, value: string) => {
-    updateCell(cellId, value);
-  };
-
   return (
     <div className="w-full h-full overflow-auto bg-white relative">
       <table className="border-collapse table-fixed">
-        {/* ... KEEP the thead exactly the same ... */}
+        {/* ... KEEP thead exactly the same ... */}
         <thead>
           <tr>
             <th className="sticky top-0 left-0 z-30 w-12 h-8 bg-gray-100 border-b border-r border-gray-300"></th>
@@ -45,9 +42,12 @@ export default function Grid({ docId }: { docId: string }) {
               {Array.from({ length: COLS }).map((_, colIndex) => {
                 const cellId = `${getColumnName(colIndex)}${rowIndex + 1}`;
                 const isSelected = selectedCell === cellId;
-                const cellValue = cells[cellId]?.value || "";
+                const isEditing = editingCell === cellId;
+                
+                const rawValue = cells[cellId]?.value || "";
+                // Calculate display value on the fly
+                const displayValue = isEditing ? rawValue : evaluateFormula(rawValue, cells);
 
-                // Look for another user occupying this cell
                 const occupyingUser = Object.values(activeUsers).find(
                   (u) => u.uid !== user?.uid && u.activeCellId === cellId
                 );
@@ -56,14 +56,13 @@ export default function Grid({ docId }: { docId: string }) {
                   <td 
                     key={colIndex}
                     className="border-b border-r border-gray-200 relative p-0 cursor-cell"
-                    onClick={() => setSelectedCell(cellId)}
+                    onClick={() => {
+                      setSelectedCell(cellId);
+                      if (!isEditing) setEditingCell(cellId);
+                    }}
                   >
-                    {/* Render multiplayer colored border if occupied */}
                     {occupyingUser && (
-                      <div 
-                        className="absolute inset-0 z-10 pointer-events-none border-2" 
-                        style={{ borderColor: occupyingUser.cursorColor }}
-                      />
+                      <div className="absolute inset-0 z-10 pointer-events-none border-2" style={{ borderColor: occupyingUser.cursorColor }} />
                     )}
                     
                     <input
@@ -71,8 +70,10 @@ export default function Grid({ docId }: { docId: string }) {
                       className={`w-full h-full min-h-[28px] px-1 outline-none text-sm ${
                         isSelected ? "ring-2 ring-blue-500 z-20 relative bg-white" : "bg-transparent relative z-0"
                       }`}
-                      value={cellValue}
-                      onChange={(e) => handleCellChange(cellId, e.target.value)}
+                      value={displayValue}
+                      onChange={(e) => updateCell(cellId, e.target.value)}
+                      onFocus={() => setEditingCell(cellId)}
+                      onBlur={() => setEditingCell(null)} // Switch back to computed value when clicking away
                     />
                   </td>
                 );
