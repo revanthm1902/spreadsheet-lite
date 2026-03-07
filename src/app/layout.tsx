@@ -1,7 +1,22 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Spreadsheet Lite",
-  description: "A lightweight, real-time, collaborative spreadsheet; think Google Sheets, stripped to its bone",
+  title: "SheetsLite",
+  description: "A real-time collaborative spreadsheet",
 };
 
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body className={inter.className}>{children}</body>
+    </html>
+  );
+}

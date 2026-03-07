@@ -43,7 +43,7 @@ export default function SpreadsheetEditor() {
       
       <main className="flex-1 overflow-auto bg-white m-2 border rounded shadow-sm">
         <main className="flex-1 overflow-hidden bg-white m-2 border rounded shadow-sm">
-          <Grid />
+          <Grid docId={docId} />
         </main>
         <div className="flex items-center justify-center h-full text-gray-400">
           Grid Layout Placeholder
