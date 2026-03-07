@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useDocument } from "@/hooks/useDocument";
 import Toolbar from "@/components/Toolbar";
+import Grid from "@/components/Grid";
 
 export default function SpreadsheetEditor() {
   const params = useParams();
@@ -41,7 +42,9 @@ export default function SpreadsheetEditor() {
       <Toolbar document={document} updateTitle={updateTitle} />
       
       <main className="flex-1 overflow-auto bg-white m-2 border rounded shadow-sm">
-        {/* The Grid Component will go here */}
+        <main className="flex-1 overflow-hidden bg-white m-2 border rounded shadow-sm">
+          <Grid />
+        </main>
         <div className="flex items-center justify-center h-full text-gray-400">
           Grid Layout Placeholder
         </div>
