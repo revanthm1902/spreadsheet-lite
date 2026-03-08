@@ -24,6 +24,11 @@ export interface CellData {
   computedValue?: string | number; 
   lastModifiedBy: string; 
   timestamp: number; 
+  bold?: boolean;
+  italic?: boolean;
+  textColor?: string;
+  backgroundColor?: string;
+  fontFamily?: string;
 }
 
 // RTDB: Presence Data
