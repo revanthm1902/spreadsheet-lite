@@ -1,6 +1,6 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowLeft, FileSpreadsheet, Cloud, CloudOff, RefreshCw, Download } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, Cloud, CloudOff, RefreshCw, Download, Link, Check } from "lucide-react";
 import { SpreadsheetDoc } from "@/types/types";
 import { useAuth } from "@/hooks/useAuth";
 import { usePresence } from "@/hooks/usePresence";
@@ -21,6 +21,13 @@ export default function Toolbar({ document, updateTitle, docId, syncState }: Too
   const [title, setTitle] = useState(document.title);
   const [prevDocTitle, setPrevDocTitle] = useState(document.title);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+  };
 
   if (document.title !== prevDocTitle) {
     setPrevDocTitle(document.title);
@@ -80,6 +87,17 @@ export default function Toolbar({ document, updateTitle, docId, syncState }: Too
             <><CloudOff size={16} className="text-red-500" /> <span className="text-red-500">Offline</span></>
           )}
         </div>
+
+        {/* SHARE BUTTON */}
+        <button 
+          onClick={handleCopyLink}
+          className={`flex items-center gap-2 ml-4 px-3 py-1.5 rounded transition text-sm font-medium border ${
+            copied ? "bg-green-50 text-green-700 border-green-200" : "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+          }`}
+        >
+          {copied ? <Check size={16} /> : <Link size={16} />}
+          {copied ? "Link Copied!" : "Share"}
+        </button>
 
         {/* EXPORT DROPDOWN */}
         <div className="relative">
