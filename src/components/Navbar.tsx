@@ -5,35 +5,39 @@ export default function Navbar() {
   const { user, loginWithGoogle, logout } = useAuth();
 
   return (
-    <nav className="flex items-center justify-between p-4 border-b bg-white">
-      <div className="flex items-center gap-2">
-        <FileSpreadsheet className="text-green-600" size={28} />
-        <span className="text-xl font-semibold text-gray-800">SheetsLite</span>
+    <nav className="sticky top-0 z-50 flex items-center justify-between px-6 h-14 bg-white/80 backdrop-blur-md border-b border-neutral-200/80">
+      <div className="flex items-center gap-2.5">
+        <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center shadow-sm">
+          <FileSpreadsheet className="text-white" size={15} />
+        </div>
+        <span className="text-sm font-semibold text-neutral-900 tracking-tight">SheetsLite</span>
       </div>
-      
+
       <div>
         {user ? (
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div 
-                className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold"
-                style={{ backgroundColor: user.cursorColor }}
-              >
-                {user.displayName.charAt(0)}
-              </div>
-              <span className="text-sm font-medium text-gray-700">{user.displayName}</span>
+          <div className="flex items-center gap-2">
+            <span className="hidden sm:block text-sm text-neutral-500">{user.displayName}</span>
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold border-2 border-white shadow-sm"
+              style={{ backgroundColor: user.cursorColor }}
+            >
+              {user.displayName.charAt(0).toUpperCase()}
             </div>
-            <button onClick={logout} className="p-2 text-gray-500 hover:text-gray-800 transition">
-              <LogOut size={20} />
+            <button
+              onClick={logout}
+              className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 px-2.5 py-1.5 rounded-md hover:bg-neutral-100 transition-colors ml-1"
+            >
+              <LogOut size={15} />
+              <span className="hidden sm:block">Sign out</span>
             </button>
           </div>
         ) : (
-          <button 
+          <button
             onClick={loginWithGoogle}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+            className="flex items-center gap-2 bg-neutral-900 text-white text-sm font-medium px-3.5 py-1.5 rounded-lg hover:bg-neutral-700 transition-colors"
           >
-            <LogIn size={18} />
-            Sign in
+            <LogIn size={15} />
+            Sign in with Google
           </button>
         )}
       </div>
