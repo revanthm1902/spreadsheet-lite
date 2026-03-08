@@ -6,7 +6,7 @@ import {
   signOut 
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { AppUser } from "@/types";
+import { AppUser } from "@/types/types";
 import { getRandomColor } from "@/lib/colors";
 
 export const useAuth = () => {

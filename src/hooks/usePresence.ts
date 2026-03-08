@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { ref, onValue, set, onDisconnect, remove } from "firebase/database";
 import { rtdb } from "@/lib/firebase";
-import { AppUser, PresenceData } from "@/types";
+import { AppUser, PresenceData } from "@/types/types";
 
 export const usePresence = (docId: string, user: AppUser | null) => {
   const [activeUsers, setActiveUsers] = useState<Record<string, PresenceData>>({});

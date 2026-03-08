@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { SpreadsheetDoc } from "@/types";
+import { SpreadsheetDoc } from "@/types/types";
 
 export const useDocument = (docId: string) => {
   const [document, setDocument] = useState<SpreadsheetDoc | null>(null);
