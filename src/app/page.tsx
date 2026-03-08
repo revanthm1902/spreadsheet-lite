@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useDocuments } from "@/hooks/useDocuments";
 import Navbar from "@/components/Navbar";
-import { Plus, FileSpreadsheet, LogIn } from "lucide-react";
+import { Plus, FileSpreadsheet, LogIn, Edit2, Trash2 } from "lucide-react";
+import { doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 const formatDate = (ts: any) => {
   if (!ts) return "Just now";
@@ -36,6 +38,34 @@ export default function Dashboard() {
     const newDocId = await createDocument();
     if (newDocId) {
       router.push(`/sheet/${newDocId}`);
+    }
+  };
+
+  const handleRename = async (e: React.MouseEvent, id: string, currentTitle: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const newTitle = window.prompt("Enter new spreadsheet name:", currentTitle);
+    
+    if (newTitle && newTitle.trim() !== "" && newTitle !== currentTitle) {
+      try {
+        await updateDoc(doc(db, "spreadsheets", id), {
+          title: newTitle.trim()
+        });
+      } catch (error) {
+        console.error("Error renaming document:", error);
+      }
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.confirm("Are you sure you want to delete this spreadsheet? This cannot be undone.")) {
+      try {
+        await deleteDoc(doc(db, "spreadsheets", id));
+      } catch (error) {
+        console.error("Error deleting document:", error);
+      }
     }
   };
 
@@ -144,11 +174,31 @@ export default function Dashboard() {
                       </div>
                     </div>
                     {/* Card info */}
-                    <div className="px-4 py-3.5">
-                      <h3 className="text-sm font-medium text-neutral-900 truncate">{doc.title}</h3>
-                      <p className="text-xs text-neutral-400 mt-1">
-                        {doc.updatedAt ? `Edited ${formatDate(doc.updatedAt)}` : "Just now"}
-                      </p>
+                    <div className="px-4 py-3.5 flex justify-between items-start">
+                      <div className="min-w-0 pr-2">
+                        <h3 className="text-sm font-medium text-neutral-900 truncate">{doc.title}</h3>
+                        <p className="text-xs text-neutral-400 mt-1">
+                          {doc.updatedAt ? `Edited ${formatDate(doc.updatedAt)}` : "Just now"}
+                        </p>
+                      </div>
+                      
+                      {/* Action Buttons (Visible on hover) */}
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <button 
+                          onClick={(e) => handleRename(e, doc.id, doc.title)}
+                          className="p-1.5 text-neutral-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          title="Rename"
+                        >
+                          <Edit2 size={15} />
+                        </button>
+                        <button 
+                          onClick={(e) => handleDelete(e, doc.id)}
+                          className="p-1.5 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

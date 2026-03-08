@@ -1,5 +1,5 @@
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ArrowLeft, FileSpreadsheet, Cloud, CloudOff, RefreshCw, Download, Link, Check } from "lucide-react";
 import { SpreadsheetDoc } from "@/types/types";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,7 +21,30 @@ export default function Toolbar({ document, updateTitle, docId, syncState }: Too
   const [title, setTitle] = useState(document.title);
   const [prevDocTitle, setPrevDocTitle] = useState(document.title);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowExportMenu(false);
+    };
+
+    if (showExportMenu) {
+      document.addEventListener("mousedown", handleOutsideClick);
+      document.addEventListener("keydown", handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscapeKey);
+    };
+  }, [showExportMenu]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -100,35 +123,21 @@ export default function Toolbar({ document, updateTitle, docId, syncState }: Too
         </button>
 
         {/* EXPORT DROPDOWN */}
-        <div className="relative">
+{/* EXPORT WRAPPER */}
+        <div className="relative" ref={exportMenuRef}>
           <button 
             onClick={() => setShowExportMenu(!showExportMenu)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-xs font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50"
+            className="flex items-center gap-2 ml-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded transition hover:bg-slate-50 text-sm font-medium"
           >
-            <Download size={14} />
+            <Download size={16} />
             Export
           </button>
 
           {showExportMenu && (
-            <div className="absolute right-0 mt-1.5 w-36 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden py-1">
-              <button 
-                onClick={() => { exportData(docId, title, 'csv'); setShowExportMenu(false); }}
-                className="block w-full text-left px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 transition-colors"
-              >
-                .CSV (Excel)
-              </button>
-              <button 
-                onClick={() => { exportData(docId, title, 'tsv'); setShowExportMenu(false); }}
-                className="block w-full text-left px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 transition-colors"
-              >
-                .TSV (Data)
-              </button>
-              <button 
-                onClick={() => { exportData(docId, title, 'json'); setShowExportMenu(false); }}
-                className="block w-full text-left px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 transition-colors"
-              >
-                .JSON (Web)
-              </button>
+            <div className="absolute right-0 mt-1.5 w-36 bg-white border border-slate-200 rounded-xl shadow-xl z-[150] py-1">
+              <button onClick={() => { exportData(docId, title, 'csv'); setShowExportMenu(false); }} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors">.CSV (Excel)</button>
+              <button onClick={() => { exportData(docId, title, 'tsv'); setShowExportMenu(false); }} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors">.TSV (Data)</button>
+              <button onClick={() => { exportData(docId, title, 'json'); setShowExportMenu(false); }} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors">.JSON (Web)</button>
             </div>
           )}
         </div>

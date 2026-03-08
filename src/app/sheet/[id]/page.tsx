@@ -7,6 +7,7 @@ import { useDocument } from "@/hooks/useDocument";
 import Toolbar from "@/components/Toolbar";
 import Grid from "@/components/Grid";
 import { SyncState } from "@/hooks/useGridSync";
+import { doc, deleteDoc, updateDoc } from "firebase/firestore";
 
 export default function SpreadsheetEditor() {
   const params = useParams();
@@ -39,6 +40,32 @@ export default function SpreadsheetEditor() {
       </div>
     );
   }
+
+  const handleRename = async (e: React.MouseEvent, id: string, currentTitle: string) => {
+    e.preventDefault(); // Prevents navigating to the spreadsheet
+    const newTitle = window.prompt("Enter new spreadsheet name:", currentTitle);
+    
+    if (newTitle && newTitle.trim() !== "" && newTitle !== currentTitle) {
+      try {
+        await updateDoc(doc(db, "spreadsheets", id), {
+          title: newTitle.trim()
+        });
+      } catch (error) {
+        console.error("Error renaming document:", error);
+      }
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault(); // Prevents navigating to the spreadsheet
+    if (window.confirm("Are you sure you want to delete this spreadsheet? This cannot be undone.")) {
+      try {
+        await deleteDoc(doc(db, "spreadsheets", id));
+      } catch (error) {
+        console.error("Error deleting document:", error);
+      }
+    }
+  };
 
 return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
