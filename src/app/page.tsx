@@ -5,10 +5,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDocuments } from "@/hooks/useDocuments";
 import Navbar from "@/components/Navbar";
 import { Plus, FileSpreadsheet, LogIn, Edit2, Trash2 } from "lucide-react";
-import { doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { doc, deleteDoc, updateDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-const formatDate = (ts: any) => {
+const formatDate = (ts: Timestamp) => {
   if (!ts) return "Just now";
   return new Date(ts.toMillis()).toLocaleDateString("en-US", {
     month: "short",

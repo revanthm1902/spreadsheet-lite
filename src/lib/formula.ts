@@ -76,7 +76,6 @@ export const evaluateFormula = (
     });
 
     // Safely evaluate the math string
-    // eslint-disable-next-line no-new-func
     return new Function(`return ${resolvedExpression}`)();
   } catch (e) {
     return (e as Error).message === "#CYCLE!" ? "#CYCLE!" : "#ERROR!";

@@ -1,3 +1,5 @@
+import { Timestamp } from "firebase/firestore";
+
 export interface AppUser {
   uid: string;
   displayName: string;
@@ -10,8 +12,8 @@ export interface AppUser {
 export interface SpreadsheetDoc {
   id: string;
   title: string;
-  createdAt: any; 
-  updatedAt: any;
+  createdAt: Timestamp | null; 
+  updatedAt: Timestamp | null;
   ownerId: string;
 }
 

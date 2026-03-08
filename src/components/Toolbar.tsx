@@ -23,6 +23,13 @@ export default function Toolbar({ document, updateTitle, docId, syncState }: Too
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
+  const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -36,20 +43,21 @@ export default function Toolbar({ document, updateTitle, docId, syncState }: Too
     };
 
     if (showExportMenu) {
-      document.addEventListener("mousedown", handleOutsideClick);
-      document.addEventListener("keydown", handleEscapeKey);
+      window.document.addEventListener("mousedown", handleOutsideClick);
+      window.document.addEventListener("keydown", handleEscapeKey);
     }
 
     return () => {
-      document.removeEventListener("mousedown", handleOutsideClick);
-      document.removeEventListener("keydown", handleEscapeKey);
+      window.document.removeEventListener("mousedown", handleOutsideClick);
+      window.document.removeEventListener("keydown", handleEscapeKey);
     };
   }, [showExportMenu]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+    if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+    copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
   };
 
   if (document.title !== prevDocTitle) {
@@ -99,7 +107,7 @@ export default function Toolbar({ document, updateTitle, docId, syncState }: Too
           ))}
         </div>
         {/* WRITE-STATE INDICATOR */}
-        <div className="flex items-center gap-1.5 border-l border-slate-200 pl-3 text-xs text-slate-400 min-w-[7.5rem]">
+        <div className="flex items-center gap-1.5 border-l border-slate-200 pl-3 text-xs text-slate-400 min-w-30">
           {syncState === 'syncing' && (
             <><RefreshCw size={13} className="animate-spin text-blue-400" /> <span>Saving...</span></>
           )}
@@ -134,7 +142,7 @@ export default function Toolbar({ document, updateTitle, docId, syncState }: Too
           </button>
 
           {showExportMenu && (
-            <div className="absolute right-0 mt-1.5 w-36 bg-white border border-slate-200 rounded-xl shadow-xl z-[150] py-1">
+            <div className="absolute right-0 mt-1.5 w-36 bg-white border border-slate-200 rounded-xl shadow-xl z-150 py-1">
               <button onClick={() => { exportData(docId, title, 'csv'); setShowExportMenu(false); }} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors">.CSV (Excel)</button>
               <button onClick={() => { exportData(docId, title, 'tsv'); setShowExportMenu(false); }} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors">.TSV (Data)</button>
               <button onClick={() => { exportData(docId, title, 'json'); setShowExportMenu(false); }} className="block w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors">.JSON (Web)</button>

@@ -142,7 +142,7 @@ export default function Grid({ docId, setSyncState }: GridProps) {
       <div className="flex items-center gap-1 px-3 py-1 border-b border-slate-200 bg-white text-gray-700 z-50">
         <button onClick={() => updateFormat(getSelectedCellIds(), { bold: cells[selectedCell || ""]?.bold ? false : true })} className="p-1.5 hover:bg-slate-100 rounded-md text-slate-600 font-bold transition-colors"><Bold size={15} /></button>
         <button onClick={() => updateFormat(getSelectedCellIds(), { italic: cells[selectedCell || ""]?.italic ? false : true })} className="p-1.5 hover:bg-slate-100 rounded-md text-slate-600 italic transition-colors"><Italic size={15} /></button>
-        <div className="w-px h-5 bg-slate-200 mx-1 flex-shrink-0" />
+        <div className="w-px h-5 bg-slate-200 mx-1 shrink-0" />
         <select 
           onChange={(e) => updateFormat(getSelectedCellIds(), { fontFamily: e.target.value })}
           className="text-xs border border-slate-200 rounded-md px-2 py-1 h-7 outline-none bg-white cursor-pointer text-slate-600 hover:border-slate-300 transition-colors"
@@ -152,7 +152,7 @@ export default function Grid({ docId, setSyncState }: GridProps) {
           <option value="serif">Serif</option>
           <option value="monospace">Monospace</option>
         </select>
-        <div className="w-px h-5 bg-slate-200 mx-1 flex-shrink-0" />
+        <div className="w-px h-5 bg-slate-200 mx-1 shrink-0" />
         <div className="flex items-center gap-1 border border-slate-200 rounded-md p-1 bg-white relative cursor-pointer hover:bg-slate-100 transition-colors h-7">
           <Type size={14} />
           <input type="color" className="w-5 h-5 cursor-pointer border-none p-0 bg-transparent" value={cells[selectedCell || ""]?.textColor || "#000000"} onChange={(e) => updateFormat(getSelectedCellIds(), { textColor: e.target.value })} title="Text Color"/>

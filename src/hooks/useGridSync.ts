@@ -30,7 +30,7 @@ export const useGridSync = (docId: string, uid: string | undefined, setSyncState
         [`${cellId}/timestamp`]: Date.now(),
       });
       setSyncState('synced');
-    } catch (error) {
+    } catch {
       setSyncState('error');
     }
   }, [docId, uid, setSyncState]);
@@ -49,7 +49,7 @@ export const useGridSync = (docId: string, uid: string | undefined, setSyncState
       return next;
     });
 
-    const updates: Record<string, any> = {};
+    const updates: Record<string, string | boolean | number> = {};
     cellIds.forEach(id => {
       if (format.bold !== undefined) updates[`${id}/bold`] = format.bold;
       if (format.italic !== undefined) updates[`${id}/italic`] = format.italic;
@@ -63,7 +63,7 @@ export const useGridSync = (docId: string, uid: string | undefined, setSyncState
     try {
       await update(ref(rtdb, `documents/${docId}/cells`), updates);
       setSyncState('synced');
-    } catch (error) {
+    } catch {
       setSyncState('error');
     }
   }, [docId, uid, setSyncState]);
