@@ -34,14 +34,6 @@ export default function Grid({ docId, setSyncState }: GridProps) {
   const [resizing, setResizing] = useState<{ type: 'col' | 'row', index: number, startPos: number, startSize: number } | null>(null);
 
   useEffect(() => {
-    if (selectionStart) {
-      const cellId = `${getColumnName(colOrder[selectionStart.col])}${selectionStart.row + 1}`;
-      updateCursor(cellId);
-      setSelectedCell(cellId);
-    }
-  }, [selectionStart, colOrder, updateCursor]);
-
-  useEffect(() => {
     const handleMouseUp = () => {
       setIsSelecting(false);
       setResizing(null);
@@ -56,6 +48,11 @@ export default function Grid({ docId, setSyncState }: GridProps) {
     setSelectionStart({ col: colIdx, row: rowIdx });
     setSelectionEnd({ col: colIdx, row: rowIdx });
     setIsSelecting(true);
+    
+    // Update cursor and selection directly on click
+    const cellId = `${getColumnName(colOrder[colIdx])}${rowIdx + 1}`;
+    setSelectedCell(cellId);
+    updateCursor(cellId);
   };
 
   const handleCellMouseEnter = (colIdx: number, rowIdx: number) => {
@@ -65,11 +62,19 @@ export default function Grid({ docId, setSyncState }: GridProps) {
   const selectFullColumn = (colIdx: number) => {
     setSelectionStart({ col: colIdx, row: 0 });
     setSelectionEnd({ col: colIdx, row: ROWS - 1 });
+    
+    const cellId = `${getColumnName(colOrder[colIdx])}1`;
+    setSelectedCell(cellId);
+    updateCursor(cellId);
   };
 
   const selectFullRow = (rowIdx: number) => {
     setSelectionStart({ col: 0, row: rowIdx });
     setSelectionEnd({ col: COLS - 1, row: rowIdx });
+    
+    const cellId = `${getColumnName(colOrder[0])}${rowIdx + 1}`;
+    setSelectedCell(cellId);
+    updateCursor(cellId);
   };
 
   const isCellSelected = (c: number, r: number) => {
@@ -106,7 +111,7 @@ export default function Grid({ docId, setSyncState }: GridProps) {
       if (resizing.type === 'col') {
         setColWidths(prev => ({ ...prev, [resizing.index]: Math.max(50, resizing.startSize + (e.clientX - resizing.startPos)) }));
       } else {
-        setRowHeights(prev => ({ ...prev, [resizing.index]: Math.max(28, resizing.startSize + (e.clientY - resizing.startPos)) }));
+        setRowHeights(prev => ({ ...prev, [resizing.index]: Math.max(32, resizing.startSize + (e.clientY - resizing.startPos)) }));
       }
     };
     if (resizing) window.addEventListener('mousemove', handleMouseMove);
@@ -161,10 +166,12 @@ export default function Grid({ docId, setSyncState }: GridProps) {
 
       {/* SPREADSHEET GRID */}
       <div className={`w-full h-full overflow-auto bg-white relative ${resizing ? (resizing.type === 'col' ? 'cursor-col-resize' : 'cursor-row-resize') : ''}`}>
-        <table className="border-collapse table-fixed select-none">
+        <table className="border-collapse table-fixed select-none min-w-max bg-white">
           <thead>
             <tr>
+              {/* Top Left Corner */}
               <th className="sticky top-0 left-0 z-40 w-12 h-8 bg-gray-100 border-b border-r border-gray-300"></th>
+              
               {colOrder.map((originalColIndex, visualIndex) => (
                 <th 
                   key={originalColIndex} 
@@ -173,16 +180,19 @@ export default function Grid({ docId, setSyncState }: GridProps) {
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => handleDrop(e, visualIndex)}
                   onClick={() => selectFullColumn(visualIndex)} 
-                  style={{ width: colWidths[originalColIndex] || 112 }}
-                  className={`sticky top-0 z-30 h-8 bg-gray-100 border-b border-r border-gray-300 font-normal text-sm text-gray-600 text-center relative hover:bg-gray-200 transition-colors cursor-grab active:cursor-grabbing ${draggedColIndex === visualIndex ? 'opacity-50' : ''}`}
+                  style={{ 
+                    width: colWidths[originalColIndex] || 150, 
+                    minWidth: colWidths[originalColIndex] || 150 
+                  }}
+                  className={`sticky top-0 z-30 h-8 bg-gray-100 border-b border-r border-gray-300 font-normal text-sm text-gray-600 text-center hover:bg-gray-200 transition-colors cursor-grab active:cursor-grabbing ${draggedColIndex === visualIndex ? 'opacity-50' : ''}`}
                 >
                   {getColumnName(originalColIndex)}
                   <div 
                     className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-blue-500 z-50 transition-colors"
                     onMouseDown={(e) => {
                       e.stopPropagation(); 
-                      e.preventDefault(); // <--- FIX: Stops browser from triggering Drag & Drop!
-                      setResizing({ type: 'col', index: originalColIndex, startPos: e.clientX, startSize: colWidths[originalColIndex] || 112 });
+                      e.preventDefault(); 
+                      setResizing({ type: 'col', index: originalColIndex, startPos: e.clientX, startSize: colWidths[originalColIndex] || 150 });
                     }}
                   />
                 </th>
@@ -193,8 +203,8 @@ export default function Grid({ docId, setSyncState }: GridProps) {
             {Array.from({ length: ROWS }).map((_, rowIndex) => (
               <tr key={rowIndex}>
                 <td 
-                  className="sticky left-0 z-30 bg-gray-100 border-b border-r border-gray-300 text-center text-sm text-gray-600 relative cursor-pointer hover:bg-gray-200 transition-colors"
-                  style={{ height: rowHeights[rowIndex] || 28 }}
+                  className="sticky left-0 z-30 bg-gray-100 border-b border-r border-gray-300 text-center text-sm text-gray-600 cursor-pointer hover:bg-gray-200 transition-colors"
+                  style={{ height: rowHeights[rowIndex] || 32 }}
                   onClick={() => selectFullRow(rowIndex)} 
                 >
                   {rowIndex + 1}
@@ -202,8 +212,8 @@ export default function Grid({ docId, setSyncState }: GridProps) {
                     className="absolute bottom-0 left-0 right-0 h-2 cursor-row-resize hover:bg-blue-500 z-50 transition-colors"
                     onMouseDown={(e) => {
                       e.stopPropagation();
-                      e.preventDefault(); // <--- FIX: Prevents text selection while resizing height
-                      setResizing({ type: 'row', index: rowIndex, startPos: e.clientY, startSize: rowHeights[rowIndex] || 28 });
+                      e.preventDefault(); 
+                      setResizing({ type: 'row', index: rowIndex, startPos: e.clientY, startSize: rowHeights[rowIndex] || 32 });
                     }}
                   />
                 </td>
@@ -221,7 +231,6 @@ export default function Grid({ docId, setSyncState }: GridProps) {
                   return (
                     <td 
                       key={originalColIndex}
-                      // --- FIX: Apply Background Color directly to the Table Cell ---
                       style={{ backgroundColor: cells[cellId]?.backgroundColor || '#ffffff' }}
                       className="border-b border-r border-gray-200 relative p-0 cursor-cell"
                       onMouseDown={() => handleCellMouseDown(visualIndex, rowIndex)}
@@ -231,7 +240,6 @@ export default function Grid({ docId, setSyncState }: GridProps) {
                         <div className="absolute inset-0 z-30 pointer-events-none border-2" style={{ borderColor: occupyingUser.cursorColor }} />
                       )}
                       
-                      {/* --- FIX: Selection Highlight is now an overlay that lets colors show through --- */}
                       {inSelection && (
                         <div className={`absolute inset-0 pointer-events-none border-blue-500 z-20 ${
                           isPrimarySelect ? 'border-2' : 'border bg-blue-500/10' 
@@ -247,7 +255,6 @@ export default function Grid({ docId, setSyncState }: GridProps) {
                           color: cells[cellId]?.textColor || 'inherit',
                           fontFamily: cells[cellId]?.fontFamily || 'inherit',
                         }}
-                        // --- FIX: Absolute positioning makes the input perfectly stretch to the cell ---
                         className={`absolute inset-0 w-full h-full px-1 outline-none text-sm bg-transparent z-10 ${
                           inSelection && !isEditing ? "caret-transparent cursor-cell" : ""
                         }`}
