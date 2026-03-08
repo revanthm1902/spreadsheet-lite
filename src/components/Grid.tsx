@@ -139,38 +139,37 @@ export default function Grid({ docId, setSyncState }: GridProps) {
     <div className="flex flex-col w-full h-full relative">
       
       {/* FORMATTING TOOLBAR */}
-      <div className="flex items-center gap-2 p-1 border-b bg-gray-50 text-gray-700 z-50">
-        <button onClick={() => updateFormat(getSelectedCellIds(), { bold: cells[selectedCell || ""]?.bold ? false : true })} className="p-1.5 hover:bg-gray-200 rounded text-gray-700 font-bold border"><Bold size={16} /></button>
-        <button onClick={() => updateFormat(getSelectedCellIds(), { italic: cells[selectedCell || ""]?.italic ? false : true })} className="p-1.5 hover:bg-gray-200 rounded text-gray-700 italic border mr-2"><Italic size={16} /></button>
-        
+      <div className="flex items-center gap-1 px-3 py-1 border-b border-slate-200 bg-white text-gray-700 z-50">
+        <button onClick={() => updateFormat(getSelectedCellIds(), { bold: cells[selectedCell || ""]?.bold ? false : true })} className="p-1.5 hover:bg-slate-100 rounded-md text-slate-600 font-bold transition-colors"><Bold size={15} /></button>
+        <button onClick={() => updateFormat(getSelectedCellIds(), { italic: cells[selectedCell || ""]?.italic ? false : true })} className="p-1.5 hover:bg-slate-100 rounded-md text-slate-600 italic transition-colors"><Italic size={15} /></button>
+        <div className="w-px h-5 bg-slate-200 mx-1 flex-shrink-0" />
         <select 
           onChange={(e) => updateFormat(getSelectedCellIds(), { fontFamily: e.target.value })}
-          className="text-sm border rounded p-1 outline-none bg-white cursor-pointer"
+          className="text-xs border border-slate-200 rounded-md px-2 py-1 h-7 outline-none bg-white cursor-pointer text-slate-600 hover:border-slate-300 transition-colors"
           value={cells[selectedCell || ""]?.fontFamily || "sans-serif"}
         >
           <option value="sans-serif">Sans Serif</option>
           <option value="serif">Serif</option>
           <option value="monospace">Monospace</option>
         </select>
-
-        <div className="flex items-center gap-1 border rounded p-1 bg-white relative cursor-pointer ml-2 hover:bg-gray-100">
-          <Type size={16} />
+        <div className="w-px h-5 bg-slate-200 mx-1 flex-shrink-0" />
+        <div className="flex items-center gap-1 border border-slate-200 rounded-md p-1 bg-white relative cursor-pointer hover:bg-slate-100 transition-colors h-7">
+          <Type size={14} />
           <input type="color" className="w-5 h-5 cursor-pointer border-none p-0 bg-transparent" value={cells[selectedCell || ""]?.textColor || "#000000"} onChange={(e) => updateFormat(getSelectedCellIds(), { textColor: e.target.value })} title="Text Color"/>
         </div>
-
-        <div className="flex items-center gap-1 border rounded p-1 bg-white relative cursor-pointer hover:bg-gray-100">
-          <PaintBucket size={16} />
+        <div className="flex items-center gap-1 border border-slate-200 rounded-md p-1 bg-white relative cursor-pointer hover:bg-slate-100 transition-colors h-7">
+          <PaintBucket size={14} />
           <input type="color" className="w-5 h-5 cursor-pointer border-none p-0 bg-transparent" value={cells[selectedCell || ""]?.backgroundColor || "#ffffff"} onChange={(e) => updateFormat(getSelectedCellIds(), { backgroundColor: e.target.value })} title="Fill Color"/>
         </div>
       </div>
 
       {/* SPREADSHEET GRID */}
-      <div className={`w-full h-full overflow-auto bg-white relative ${resizing ? (resizing.type === 'col' ? 'cursor-col-resize' : 'cursor-row-resize') : ''}`}>
+      <div className={`w-full h-full overflow-auto bg-white relative sheet-scroll ${resizing ? (resizing.type === 'col' ? 'cursor-col-resize' : 'cursor-row-resize') : ''}`}>
         <table className="border-collapse table-fixed select-none min-w-max bg-white">
           <thead>
             <tr>
               {/* Top Left Corner */}
-              <th className="sticky top-0 left-0 z-40 w-12 h-8 bg-gray-100 border-b border-r border-gray-300"></th>
+              <th className="sticky top-0 left-0 z-40 w-12 h-8 bg-slate-50 border-b border-r border-slate-200"></th>
               
               {colOrder.map((originalColIndex, visualIndex) => (
                 <th 
@@ -184,11 +183,11 @@ export default function Grid({ docId, setSyncState }: GridProps) {
                     width: colWidths[originalColIndex] || 150, 
                     minWidth: colWidths[originalColIndex] || 150 
                   }}
-                  className={`sticky top-0 z-30 h-8 bg-gray-100 border-b border-r border-gray-300 font-normal text-sm text-gray-600 text-center hover:bg-gray-200 transition-colors cursor-grab active:cursor-grabbing ${draggedColIndex === visualIndex ? 'opacity-50' : ''}`}
+                  className={`sticky top-0 z-30 h-8 bg-slate-50 border-b border-r border-slate-200 font-medium text-xs text-slate-500 text-center hover:bg-slate-100 transition-colors cursor-grab active:cursor-grabbing select-none ${draggedColIndex === visualIndex ? 'opacity-40' : ''}`}
                 >
                   {getColumnName(originalColIndex)}
                   <div 
-                    className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-blue-500 z-50 transition-colors"
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-400 z-50 transition-colors"
                     onMouseDown={(e) => {
                       e.stopPropagation(); 
                       e.preventDefault(); 
@@ -203,13 +202,13 @@ export default function Grid({ docId, setSyncState }: GridProps) {
             {Array.from({ length: ROWS }).map((_, rowIndex) => (
               <tr key={rowIndex}>
                 <td 
-                  className="sticky left-0 z-30 bg-gray-100 border-b border-r border-gray-300 text-center text-sm text-gray-600 cursor-pointer hover:bg-gray-200 transition-colors"
+                  className="sticky left-0 z-30 bg-slate-50 border-b border-r border-slate-200 text-center text-xs text-slate-500 font-medium cursor-pointer hover:bg-slate-100 transition-colors select-none"
                   style={{ height: rowHeights[rowIndex] || 32 }}
                   onClick={() => selectFullRow(rowIndex)} 
                 >
                   {rowIndex + 1}
                   <div 
-                    className="absolute bottom-0 left-0 right-0 h-2 cursor-row-resize hover:bg-blue-500 z-50 transition-colors"
+                    className="absolute bottom-0 left-0 right-0 h-1 cursor-row-resize hover:bg-blue-400 z-50 transition-colors"
                     onMouseDown={(e) => {
                       e.stopPropagation();
                       e.preventDefault(); 
@@ -232,7 +231,7 @@ export default function Grid({ docId, setSyncState }: GridProps) {
                     <td 
                       key={originalColIndex}
                       style={{ backgroundColor: cells[cellId]?.backgroundColor || '#ffffff' }}
-                      className="border-b border-r border-gray-200 relative p-0 cursor-cell"
+                      className="border-b border-r border-slate-100 relative p-0 cursor-cell"
                       onMouseDown={() => handleCellMouseDown(visualIndex, rowIndex)}
                       onMouseEnter={() => handleCellMouseEnter(visualIndex, rowIndex)}
                     >
@@ -255,7 +254,7 @@ export default function Grid({ docId, setSyncState }: GridProps) {
                           color: cells[cellId]?.textColor || 'inherit',
                           fontFamily: cells[cellId]?.fontFamily || 'inherit',
                         }}
-                        className={`absolute inset-0 w-full h-full px-1 outline-none text-sm bg-transparent z-10 ${
+                        className={`absolute inset-0 w-full h-full px-1.5 outline-none text-sm bg-transparent z-10 ${
                           inSelection && !isEditing ? "caret-transparent cursor-cell" : ""
                         }`}
                         value={displayValue}
