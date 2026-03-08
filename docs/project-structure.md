@@ -7,7 +7,7 @@
 ## Directory Overview
 
 ```
-spreadsheet-pro/
+spreadsheet-lite/
 ├── docs/                        ← Documentation (you are here)
 │   ├── architecture.md          ← System architecture & data flow
 │   ├── design-decisions.md      ← Why RTDB, client formulas, no CRDT
