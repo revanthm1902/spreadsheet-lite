@@ -1,6 +1,6 @@
-# Project Structure
+# 📁 Project Structure
 
-> **Back to** [README](../README.md)
+> **[Back to README](../README.md)**
 
 ---
 
@@ -8,115 +8,113 @@
 
 ```
 spreadsheet-lite/
-├── docs/                        ← Documentation (you are here)
-│   ├── architecture.md          ← System architecture & data flow
-│   ├── design-decisions.md      ← Why RTDB, client formulas, no CRDT
-│   ├── features.md              ← Full feature & non-feature reference
-│   └── project-structure.md    ← This file
-│
-├── public/                      ← Static assets (Next.js default)
-│
-├── src/
-│   ├── app/                     ← Next.js App Router pages
-│   │   ├── layout.tsx           ← Root layout (Server Component)
-│   │   ├── page.tsx             ← Dashboard route: /
-│   │   ├── globals.css          ← Global Tailwind CSS
-│   │   └── sheet/
-│   │       └── [id]/
-│   │           └── page.tsx     ← Editor route: /sheet/:id
-│   │
-│   ├── components/              ← UI Components (Client Components)
-│   │   ├── Grid.tsx             ← The spreadsheet grid
-│   │   ├── Toolbar.tsx          ← Editor top bar
-│   │   └── Navbar.tsx           ← Dashboard navigation bar
-│   │
-│   ├── hooks/                   ← Custom React hooks (Firebase bindings)
-│   │   ├── useAuth.ts           ← Firebase Auth state
-│   │   ├── useDocuments.ts      ← Firestore: list & create spreadsheets
-│   │   ├── useDocument.ts       ← Firestore: single document metadata
-│   │   ├── useGridSync.ts       ← RTDB: cell read/write/formatting
-│   │   └── usePresence.ts       ← RTDB: user cursors & active cells
-│   │
-│   ├── lib/                     ← Pure utility modules
-│   │   ├── firebase.ts          ← Firebase SDK initialization
-│   │   ├── formula.ts           ← Formula parser & evaluator
-│   │   ├── export.ts            ← CSV / TSV / JSON export logic
-│   │   └── colors.ts            ← Presence cursor color palette
-│   │
-│   └── types/
-│       └── types.ts             ← TypeScript interfaces
-│
-├── next.config.ts               ← Next.js configuration
-├── tsconfig.json                ← TypeScript configuration
-├── eslint.config.mjs            ← ESLint configuration
-├── postcss.config.mjs           ← PostCSS / Tailwind configuration
-└── package.json                 ← Dependencies & scripts
+├── docs/                        ← Architecture, decisions, features (you are here)
+└── src/
+    ├── app/                     ← Next.js App Router pages
+    │   ├── layout.tsx           ← Root layout (Server Component — html/body/fonts only)
+    │   ├── page.tsx             ← Dashboard route: /
+    │   ├── globals.css          ← Tailwind + custom scrollbar utilities
+    │   └── sheet/[id]/page.tsx  ← Editor route: /sheet/:id
+    ├── components/              ← All UI components (Client Components)
+    │   ├── Grid.tsx             ← ⭐ The spreadsheet engine — most complex file
+    │   ├── Toolbar.tsx          ← Editor top bar: title, sync state, avatars, export
+    │   └── Navbar.tsx           ← Dashboard nav: logo, user avatar, sign-out
+    ├── hooks/                   ← Firebase bindings as custom React hooks
+    │   ├── useAuth.ts           ← Firebase Auth state
+    │   ├── useDocuments.ts      ← Firestore: list + create spreadsheets
+    │   ├── useDocument.ts       ← Firestore: single document metadata + updateTitle
+    │   ├── useGridSync.ts       ← RTDB: full cell map, updateCell, updateFormat, syncState
+    │   └── usePresence.ts       ← RTDB: activeUsers map, updateCursor, onDisconnect cleanup
+    ├── lib/                     ← Pure utility modules (no React, no Firebase side-effects)
+    │   ├── firebase.ts          ← Firebase SDK initialization (Auth + Firestore + RTDB)
+    │   ├── formula.ts           ← ⭐ Recursive formula parser + cycle detection
+    │   ├── export.ts            ← CSV / TSV / JSON export — reads in-memory cells map
+    │   └── colors.ts            ← Presence cursor color palette
+    └── types/
+        └── types.ts             ← AppUser, SpreadsheetDoc, CellData, PresenceData
 ```
 
 ---
 
-## File-by-File Reference
+## Key Files In Depth
 
-### `src/app/layout.tsx` — Root Layout
+### `Grid.tsx` — The Heart of the App
 
-The only true **Server Component** in the project. Responsibilities:
-- Wraps all pages in `<html>` and `<body>` tags.
-- Loads the Inter font via `next/font/google` (font bytes are self-hosted by Next.js at build time — no Google Fonts network calls at runtime).
-- Exports `metadata` (page title, description) for SEO and browser tab title.
+All spreadsheet interaction lives in one file. Here's what it manages:
 
-**Why Server Component?** It handles only static concerns. No Firebase, no hooks, no browser APIs.
+**Local state (UI-only, not synced to Firebase):**
 
----
-
-### `src/app/page.tsx` — Dashboard
-
-Client Component. The home route (`/`). Shows:
-- Login prompt for unauthenticated users.
-- Document gallery for authenticated users.
-- "Blank Spreadsheet" creation button.
-
-Hooks used: `useAuth`, `useDocuments`.
-
----
-
-### `src/app/sheet/[id]/page.tsx` — Spreadsheet Editor
-
-Client Component. The editor route (`/sheet/:id`). Responsibilities:
-- Extracts `docId` from the URL via `useParams()`.
-- Route protection: redirects to `/` if not authenticated.
-- Lifts `syncState` between `Grid` (producer) and `Toolbar` (consumer).
-- Renders loading/error states.
-
-Hooks used: `useAuth`, `useDocument`.
-
----
-
-### `src/components/Grid.tsx` — The Grid
-
-The most complex component in the project. All spreadsheet interaction lives here.
-
-**State managed locally (not synced):**
-- `selectedCell` — the active cell ID
-- `editingCell` — the cell currently in edit mode (shows raw formula)
-- `selectionStart` / `selectionEnd` — defines the rectangular selection range
-- `isSelecting` — true while mouse button is held during range selection
-- `colWidths` — per-column pixel widths (default: 150px)
-- `rowHeights` — per-row pixel heights (default: 32px)
-- `colOrder` — current visual order of column indices (supports drag-to-reorder)
-- `draggedColIndex` — which column is being dragged
-- `resizing` — active resize operation metadata
+| State | Purpose |
+|-------|---------|
+| `selectedCell` | The active cell ID string (e.g., `"B3"`) |
+| `editingCell` | Which cell is in edit mode (shows raw formula) |
+| `selectionStart / End` | The two corners of the rectangular bounding-box selection |
+| `isSelecting` | `true` while mouse button is held during drag-selection |
+| `colWidths` | Per-column pixel widths `Record<number, number>` |
+| `rowHeights` | Per-row pixel heights `Record<number, number>` |
+| `colOrder` | Visual ordering of column indices — supports drag-to-reorder |
+| `resizing` | Active resize metadata: `{ type, index, startPos, startSize }` |
 
 **External state (from hooks):**
-- `cells` from `useGridSync` — the RTDB-synced cell data map
-- `activeUsers` from `usePresence` — other users' cursor positions
+- `cells` from `useGridSync` — the RTDB-synced `Record<cellId, CellData>` map
+- `activeUsers` from `usePresence` — map of other users and their `activeCellId`
 
-**Key rendering logic:**
-- Each cell renders an `<input>` element. In non-edit mode, `readOnly` is set and `value` is the formula result. In edit mode, `value` is the raw formula string.
-- Cell backgrounds come from `cells[cellId]?.backgroundColor`.
-- Remote user presences are rendered as absolutely-positioned colored `<div>` borders stacked over the cell.
-- Selection highlights are also absolutely-positioned `<div>`s layered via `z-index`.
+**Rendering model:**
+- Every cell is an `<input readOnly>` in non-edit mode (value = computed result)
+- In edit mode, `readOnly` is removed and value = raw formula string
+- Remote user presence = absolutely-positioned `<div>` with `borderColor = user.cursorColor`
+- Selection highlight = absolutely-positioned `<div>` with `bg-blue-500/10`
 
 ---
+
+### `lib/formula.ts` — The Formula Engine
+
+<details>
+<summary><b>Show: evaluation pipeline</b></summary>
+
+```
+Input: "=SUM(A1:A5)"
+  1. Detect leading "=" → it's a formula
+  2. Parse: identify function name "SUM", argument "A1:A5"
+  3. Expand range: "A1:A5" → ["A1", "A2", "A3", "A4", "A5"]
+  4. Resolve each cell: look up cells["A1"].value, recursively evaluate if formula
+  5. Cycle check: if cellId is in `visited` Set → return "#CYCLE!"
+  6. Sum the resolved values → return result
+```
+
+</details>
+
+- Supports: `SUM(range)`, cell refs, `+`, `-`, `*`, `/`, `()`
+- Cycle detection: visited-set passed through every recursive call
+- Lives in `lib/` (no React imports) — pure function, easily unit-testable
+
+---
+
+### `useGridSync.ts` — The RTDB Bridge
+
+- Subscribes to `onValue(ref(rtdb, 'documents/{docId}/cells'))` on mount
+- Exposes `cells: Record<string, CellData>` — the source of truth for the entire grid
+- `updateCell(cellId, value)` — single path write
+- `updateFormat(cellIds[], formatObj)` — resolves to an atomic multi-path `update()` call
+- Tracks `syncState`: `'syncing' | 'synced' | 'error'` — lifted to Toolbar via `setSyncState` prop
+
+---
+
+### `usePresence.ts` — The Multiplayer Layer
+
+- On mount: writes user presence node + registers `onDisconnect().remove()`
+- `updateCursor(cellId)` — writes `activeCellId` to RTDB presence on every cell click
+- Subscribes to all sibling presence nodes — `activeUsers` map updates in real time
+- On unmount: manually calls `remove()` to clean up presence immediately (don't wait for disconnect)
+
+---
+
+## Architectural Principle
+
+> **Every hook owns exactly one concern. No hook imports another hook.**
+
+`Grid.tsx` composes `useGridSync` and `usePresence` at the component level. The grid knows about both. Neither hook knows about the other. This makes each hook independently testable and replaceable.
+
 
 ### `src/components/Toolbar.tsx` — Editor Toolbar
 

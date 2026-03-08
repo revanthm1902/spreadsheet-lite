@@ -14,9 +14,20 @@
 
 ---
 
-SheetsLite is a browser-based collaborative spreadsheet. Multiple users can edit the same document simultaneously — every keystroke, format change, and cursor move appears on all connected screens in real time.
+> 🎥 **[INSERT 10-SECOND DEMO GIF HERE — Show: open doc → type in two tabs → see live cursor sync + colored cell borders]**
 
-It's a deliberately scoped project. Not a Google Sheets replacement — a clean real-time foundation with every architectural choice documented.
+---
+
+## What Makes This Non-Trivial
+
+> Not a tutorial clone. Every hard problem was thought through and explicitly decided.
+
+| # | Senior Flex | One-Line Answer |
+|---|-------------|-----------------|
+| 1 | **Dual-database architecture** | Firestore for queries, RTDB for real-time cells — each used for what it's actually good at |
+| 2 | **Custom formula engine** | Recursive parser + cycle detection (DAG) in the browser — zero server latency |
+| 3 | **Intentional non-feature** | Collaborative undo/redo was explicitly excluded — here's exactly why |
+| 4 | **No grid library** | Drag-resize, drag-reorder, bounding-box selection — built from raw DOM events |
 
 ---
 
@@ -25,31 +36,19 @@ It's a deliberately scoped project. Not a Google Sheets replacement — a clean 
 <table>
 <tr>
 <td align="center" width="25%">
-<a href="docs/architecture.md">
-<br/>
-<b>🏗️ Architecture</b>
-</a>
-<br/><sub>System design, dual-Firebase split,<br/>data flow, component tree</sub>
+<a href="docs/architecture.md"><b>🏗️ Architecture</b></a>
+<br/><sub>Dual-Firebase split, data model,<br/>component tree, real-time flow</sub>
 </td>
 <td align="center" width="25%">
-<a href="docs/design-decisions.md">
-<br/>
-<b>🧠 Design Decisions</b>
-</a>
-<br/><sub>Why RTDB, client formulas,<br/>no CRDT undo — with full reasoning</sub>
+<a href="docs/design-decisions.md"><b>🧠 Design Decisions</b></a>
+<br/><sub>RTDB vs Firestore, client formulas,<br/>the deliberate no-CRDT call</sub>
 </td>
 <td align="center" width="25%">
-<a href="docs/features.md">
-<br/>
-<b>✨ Features</b>
-</a>
+<a href="docs/features.md"><b>✨ Features</b></a>
 <br/><sub>What's built, what's intentionally<br/>excluded and why</sub>
 </td>
 <td align="center" width="25%">
-<a href="docs/project-structure.md">
-<br/>
-<b>📁 Project Structure</b>
-</a>
+<a href="docs/project-structure.md"><b>📁 Project Structure</b></a>
 <br/><sub>Every file explained —<br/>hooks, components, lib</sub>
 </td>
 </tr>
@@ -59,15 +58,129 @@ It's a deliberately scoped project. Not a Google Sheets replacement — a clean 
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Framework | Next.js 16 — App Router, file-based routing |
-| UI | React 19 + Tailwind CSS v4 |
-| Language | TypeScript 5 |
-| Auth | Firebase Authentication (Google OAuth) |
-| Real-time cells | **Firebase Realtime Database** — WebSocket sync, `onDisconnect`, atomic multi-path writes |
-| Document metadata | **Firestore** — compound index queries (owner + sort by date) |
-| Icons | Lucide React |
+| Layer | Technology | Why |
+|-------|------------|-----|
+| Framework | **Next.js 16** — App Router | File-based routing, Server Components for layout |
+| UI | **React 19** + **Tailwind CSS v4** | Concurrent features, zero-config utility CSS |
+| Language | **TypeScript 5** | Full type coverage across hooks, components & Firebase |
+| Auth | **Firebase Auth** — Google OAuth | One-click sign-in, automatic token refresh |
+| Real-time cells | **Firebase RTDB** | WebSocket, `onDisconnect`, atomic multi-path `update()` |
+| Document metadata | **Firestore** | Compound index queries: `ownerId + updatedAt` |
+| Icons | **Lucide React** | |
+
+---
+
+## Architecture at a Glance
+
+```
+ Browser
+ ┌──────────────────────────────────────────────────┐
+ │ Dashboard (/) Sheet Editor (/sheet/[id]) │
+ │ useAuth · useDocuments useAuth · useDocument │
+ │ │ useGridSync · usePresence │
+ └──────────────────────┬───────────────────────────┘
+ │
+ Firebase SDK (client-only, no server)
+ │
+ ┌──────────┴──────────┐
+ │ │
+ ▼ ▼
+ Firestore RTDB
+ ──────────── ──────────────────────────
+ doc metadata cell values + formatting
+ title, owner, timestamps presence + cursor positions
+ compound index queries WebSocket · onDisconnect
+```
+
+> 📸 **[INSERT SCREENSHOT — Dashboard document grid with card hover states]**
+
+---
+
+## Key Architectural Decisions
+
+### ⚡ 1 — Database Split: RTDB for Cells, Firestore for Metadata
+
+**The problem:** A 26×100 grid = 2,600 cells. Batch formatting 50 cells = 50 simultaneous writes. Firestore throttles **1 write/second per document** and charges per-read — catastrophically wrong for a spreadsheet workload.
+
+**The solution:** RTDB's `update()` writes to arbitrary JSON paths **atomically in one round trip**, maintains a persistent WebSocket, and provides `onDisconnect` for automatic presence cleanup on hard browser kills. Firestore has zero equivalents for these.
+
+<details>
+<summary><b>Show: RTDB atomic multi-path write code</b></summary>
+
+```ts
+// 50 formatting changes → ONE round trip, zero contention
+update(ref(rtdb, `documents/${docId}/cells`), {
+  "A1/bold": true,
+  "A2/bold": true,
+  // ...48 more paths
+  "C10/backgroundColor": "#ffff00"
+});
+// Firestore equivalent: 50 separate writes, each throttled, each billed
+```
+
+</details>
+
+---
+
+### 🧮 2 — Formula Engine: Client-Side Recursive Parser
+
+**The problem:** Formula evaluation requires live cell state. Sending that state to a server on every keystroke = **100–400ms latency**. That's an unusable spreadsheet.
+
+**The solution:** `useGridSync` keeps the full cell map in memory via a live RTDB subscription. `lib/formula.ts` evaluates any formula **synchronously in under 1ms** — no network hop, no serialization, no round trip.
+
+<details>
+<summary><b>Show: supported formula syntax + cycle detection</b></summary>
+
+```
+=SUM(A1:A5)         → range sum
+=A1+B2*C3           → arithmetic with precedence
+=(A1+B2)/C3         → parentheses
+=A1                 → cell reference in A1  → #CYCLE!
+```
+
+Cycle detection uses a **visited-set DAG traversal** — any circular reference short-circuits immediately and surfaces `#CYCLE!` rather than hanging.
+
+</details>
+
+---
+
+### 🚫 3 — Intentional Non-Feature: No Collaborative Undo/Redo
+
+**The hard truth:** Multiplayer undo has no clean semantic. If Alice undoes her edit **after Bob has built on it** — what happens to Bob's work?
+
+**Why skipping it is the right call:**
+- True collaborative undo requires **CRDTs** (Yjs/Automerge) or **Operational Transformation
+- That adds ~60KB+ bundle weight, per-user operation logs, and complex 3-way merge edge cases
+- **Last-write-wins** (newest `timestamp` wins) is the same trade-off Google Sheets makes
+- Every cell stores `lastModifiedBy` + `timestamp` as a lightweight audit trail
+
+> This is not a gap. It's a deliberate scope boundary with documented reasoning — which is itself a senior engineering signal.
+
+---
+
+### 🖱️ 4 — Custom Grid Interactions: Zero Library Dependencies
+
+> 📸 **[INSERT SCREENSHOT — Drag-to-resize column handle on hover]**
+> 📸 **[INSERT SCREENSHOT — Multi-cell bounding box selection highlight]**
+
+All of the following are built from raw DOM `mousedown/mousemove/mouseup` events and React state — **no AG Grid, no react-table, no react-resizable**:
+
+- **Column drag-to-resize** — 1px handle, `onMouseDown` captures start position, global `mousemove` computes delta
+- **Row drag-to-resize** — same pattern, vertical axis
+- **Drag-to-reorder columns** — HTML5 `draggable` API + `colOrder` index remapping
+- **Multi-cell bounding-box selection** — `selectionStart`/`selectionEnd` state forms a rectangular range, rendered as absolutely-positioned `<div>` overlays
+- **Batch formatting** — selection range is resolved to a flat `cellId[]` array → single RTDB `update()` call
+
+---
+
+## 🤝 Multiplayer in Action
+
+> 🎥 **[INSERT 10-SECOND GIF — Two browser windows side-by-side: type in left tab, see it appear in right tab with colored cursor border]**
+
+- **Every keystroke** syncs via RTDB WebSocket — no polling, no debounce delay
+- **Presence avatars** in the toolbar show all active users with their assigned color
+- **Colored cell borders** show exactly which cell each remote user has selected, in their color
+- **Auto-cleanup** — `onDisconnect` removes presence data even on hard browser/tab kills
 
 ---
 
@@ -79,12 +192,12 @@ cd spreadsheet-lite
 npm install
 ```
 
-**Firebase setup:**
+**Firebase setup (5 steps):**
 1. Create a project at [console.firebase.google.com](https://console.firebase.google.com)
 2. Enable **Authentication → Google**
 3. Enable **Firestore Database**
 4. Enable **Realtime Database**
-5. Add a Firestore composite index: `spreadsheets` collection → `ownerId ASC, updatedAt DESC`
+5. Add a Firestore composite index: `spreadsheets` → `ownerId ASC, updatedAt DESC`
 
 **`.env.local`:**
 ```env
@@ -101,46 +214,4 @@ NEXT_PUBLIC_FIREBASE_DATABASE_URL=
 npm run dev
 ```
 
----
-
-## Features
-
-**Spreadsheet**
-- 26 × 100 grid (A–Z, rows 1–100) with frozen headers
-- Formulas: `=SUM(A1:A5)`, cell references, arithmetic, `#CYCLE!` detection
-- Cell formatting: Bold, Italic, Font Family, Text Color, Fill Color
-- Click-drag range selection, full row/column select, batch formatting
-- Column resize, row resize, drag-to-reorder columns
-
-**Collaboration**
-- Live cell sync across all connected browsers via RTDB WebSocket
-- Presence avatars showing who's in the document
-- Colored cell borders showing each user's active cell
-- Auto-cleanup when a user disconnects (RTDB `onDisconnect`)
-
-**Documents**
-- Google Sign-In, one click
-- Dashboard listing all your spreadsheets, sorted by last modified
-- Inline title editing, synced to Firestore
-- Share button — copies URL to clipboard
-
-**Export**
-- CSV (Excel-compatible), TSV, JSON — triggered as browser download
-
----
-
-## Key Decisions
-
-Three choices most define the architecture. Short version here — full reasoning in [docs/design-decisions.md](docs/design-decisions.md).
-
-### ⚡ RTDB over Firestore for cells
-
-Firestore throttles writes to **1 per second per document** and charges per read. A 26×100 grid = 2,600 cells; a batch format operation touches 50+ paths at once. RTDB's `update()` writes to arbitrary JSON paths atomically in one round trip. Its `onDisconnect` hook automatically removes presence data even on hard browser closes — Firestore has no equivalent.
-
-### 🧮 Formulas run on the client
-
-`useGridSync` keeps the full cell state in memory via a live RTDB subscription. Evaluating `=SUM(A1:A5)` is a synchronous in-memory call — under 1ms. Sending cells to a server for evaluation would add a full network round trip (~100–400ms) on every keystroke, for no benefit.
-
-### 🔒 No CRDT Undo/Redo
-
-Collaborative undo has no clean semantic. If Alice undoes her edit after Bob has built on it, does Bob's work survive? CRDT undo (Yjs/Automerge) resolves this but adds ~60KB+ bundle, per-user operation logs, and complex merge edge cases. We use **last write wins** — the newest `timestamp` wins. Cells store `lastModifiedBy` + `timestamp` as an audit trail. This is the same trade-off Google Sheets makes.
+Open [http://localhost:3000](http://localhost:3000) · Sign in with Google · Create a spreadsheet · Open it in a second tab to see multiplayer live.
