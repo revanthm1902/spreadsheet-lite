@@ -1,10 +1,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowLeft, FileSpreadsheet, Cloud, CloudOff, RefreshCw } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, Cloud, CloudOff, RefreshCw, Download } from "lucide-react";
 import { SpreadsheetDoc } from "@/types/types";
 import { useAuth } from "@/hooks/useAuth";
 import { usePresence } from "@/hooks/usePresence";
 import { SyncState } from "@/hooks/useGridSync";
+import { exportData } from "@/lib/export";
 
 interface ToolbarProps {
   document: SpreadsheetDoc;
@@ -19,6 +20,7 @@ export default function Toolbar({ document, updateTitle, docId, syncState }: Too
   const { activeUsers } = usePresence(docId, user);
   const [title, setTitle] = useState(document.title);
   const [prevDocTitle, setPrevDocTitle] = useState(document.title);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   if (document.title !== prevDocTitle) {
     setPrevDocTitle(document.title);
@@ -76,6 +78,40 @@ export default function Toolbar({ document, updateTitle, docId, syncState }: Too
           )}
           {syncState === 'error' && (
             <><CloudOff size={16} className="text-red-500" /> <span className="text-red-500">Offline</span></>
+          )}
+        </div>
+
+        {/* EXPORT DROPDOWN */}
+        <div className="relative">
+          <button 
+            onClick={() => setShowExportMenu(!showExportMenu)}
+            className="flex items-center gap-2 ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded transition text-sm font-medium border"
+          >
+            <Download size={16} />
+            Export
+          </button>
+
+          {showExportMenu && (
+            <div className="absolute right-0 mt-1 w-32 bg-white border rounded shadow-lg z-50 overflow-hidden">
+              <button 
+                onClick={() => { exportData(docId, title, 'csv'); setShowExportMenu(false); }}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
+              >
+                .CSV (Excel)
+              </button>
+              <button 
+                onClick={() => { exportData(docId, title, 'tsv'); setShowExportMenu(false); }}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
+              >
+                .TSV (Data)
+              </button>
+              <button 
+                onClick={() => { exportData(docId, title, 'json'); setShowExportMenu(false); }}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition"
+              >
+                .JSON (Web)
+              </button>
+            </div>
           )}
         </div>
 
