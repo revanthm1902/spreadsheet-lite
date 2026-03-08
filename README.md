@@ -12,9 +12,6 @@
 
 </div>
 
----
-
-> 🎥 **[INSERT 10-SECOND DEMO GIF HERE — Show: open doc → type in two tabs → see live cursor sync + colored cell borders]**
 
 ---
 
