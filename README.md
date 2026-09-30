@@ -17,9 +17,7 @@
 
 ## What Makes This Non-Trivial
 
-> Not a tutorial clone. Every hard problem was thought through and explicitly decided.
-
-| # | Senior Flex | One-Line Answer |
+| # | Feature | One-Line Answer |
 |---|-------------|-----------------|
 | 1 | **Dual-database architecture** | Firestore for queries, RTDB for real-time cells — each used for what it's actually good at |
 | 2 | **Custom formula engine** | Recursive parser + cycle detection (DAG) in the browser — zero server latency |
@@ -89,9 +87,6 @@
  compound index queries WebSocket · onDisconnect
 ```
 
-> 📸 **[INSERT SCREENSHOT — Dashboard document grid with card hover states]**
-
----
 
 ## Key Architectural Decisions
 
@@ -105,14 +100,12 @@
 <summary><b>Show: RTDB atomic multi-path write code</b></summary>
 
 ```ts
-// 50 formatting changes → ONE round trip, zero contention
 update(ref(rtdb, `documents/${docId}/cells`), {
   "A1/bold": true,
   "A2/bold": true,
   // ...48 more paths
   "C10/backgroundColor": "#ffff00"
 });
-// Firestore equivalent: 50 separate writes, each throttled, each billed
 ```
 
 </details>
@@ -151,14 +144,9 @@ Cycle detection uses a **visited-set DAG traversal** — any circular reference 
 - **Last-write-wins** (newest `timestamp` wins) is the same trade-off Google Sheets makes
 - Every cell stores `lastModifiedBy` + `timestamp` as a lightweight audit trail
 
-> This is not a gap. It's a deliberate scope boundary with documented reasoning — which is itself a senior engineering signal.
-
 ---
 
 ### 🖱️ 4 — Custom Grid Interactions: Zero Library Dependencies
-
-> 📸 **[INSERT SCREENSHOT — Drag-to-resize column handle on hover]**
-> 📸 **[INSERT SCREENSHOT — Multi-cell bounding box selection highlight]**
 
 All of the following are built from raw DOM `mousedown/mousemove/mouseup` events and React state — **no AG Grid, no react-table, no react-resizable**:
 
@@ -172,7 +160,6 @@ All of the following are built from raw DOM `mousedown/mousemove/mouseup` events
 
 ## 🤝 Multiplayer in Action
 
-> 🎥 **[INSERT 10-SECOND GIF — Two browser windows side-by-side: type in left tab, see it appear in right tab with colored cursor border]**
 
 - **Every keystroke** syncs via RTDB WebSocket — no polling, no debounce delay
 - **Presence avatars** in the toolbar show all active users with their assigned color
